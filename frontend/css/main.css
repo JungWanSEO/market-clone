@@ -1,10 +1,10 @@
 main {
-  padding: 30px 20px 30px 20px;
+  padding: 30px 20px 100px 20px;
 }
 
 .items-list {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   border-bottom: 1px solid #ededef;
   padding: 20px 0 20px 0;
@@ -19,10 +19,12 @@ main {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 
 .items-list__img img {
-  width: 50px;
+  width: 100%;
+  height: 100%;
 }
 
 .items-list__info {
@@ -37,12 +39,12 @@ main {
   margin-top: 10px;
 }
 
-.item-list__info-meta {
+.items-list__info-meta {
   font-size: smaller;
   color: rgba(0, 0, 0, 0.3);
 }
 
-.item-list__info-price {
+.items-list__info-price {
   font-weight: bold;
 }
 
