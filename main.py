@@ -38,7 +38,7 @@ async def create_item(image: UploadFile,
                 description: Annotated[str, Form()], 
                 place: Annotated[str, Form()],
                 insertAt: Annotated[int, Form()]):
-    #이미지 데이터는 블록타입이라서 크게 오기 때문에 데이터를 읽을 시간이 필요함
+    # 이미지 데이터는 블록타입이라서 크게 오기 때문에 데이터를 읽을 시간이 필요함
     image_bytes = await image.read()
     cur.execute(f"""
                 INSERT INTO 
@@ -70,7 +70,15 @@ async def get_image(item_id):
                               SELECT image from items WHERE id={item_id}
                               """).fetchone()[0]
     
-    return Response(content=bytes.fromhex(image_bytes))
+    #media_type의 경우 배포 버전에 따라서 명시적으로 해줘야하고 안해주고 차이가 존재
+    #deta-space의 경우 python3.9까지 적용중이라고 함(현재 나의 버전 3.12)
+    return Response(content=bytes.fromhex(image_bytes), media_type="image/*")
+
+@app.post("/signup")
+def signup(id:Annotated[str, Form()], password:Annotated[str, Form()]):
+    print(id, password)
+    return '200'
+
 
 
 @app.get("/chat")
