@@ -1,8 +1,10 @@
-from fastapi import FastAPI, UploadFile, Form, Response
+from fastapi import FastAPI, UploadFile, Form, Response, Depends
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
+from fastapi_login import LoginManager
+from fastapi_login.exceptions import InvalidCredentialsException
 from typing import Annotated
 import sqlite3
 
@@ -31,13 +33,63 @@ chats = []
 
 app = FastAPI()
 
+SERCRET = "super-coding"
+manager = LoginManager(SERCRET, '/login')
+
+@manager.user_loader()
+def query_user(data):
+    WHERE_STATEMENTS = f'id="{data}"'
+    if type(data) == dict:
+        WHERE_STATEMENTS = f'''id="{data['id']}"'''
+        #컬럼명을 같이 불러오는 코드
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    user = cur.execute(f"""
+                       SELECT * FROM users WHERE {WHERE_STATEMENTS}
+                       """).fetchone()
+    return user
+
+@app.post('/login')
+def login(id:Annotated[str, Form()], 
+          password: Annotated[str, Form()]):
+    user = query_user(id)
+    if not user:
+        #자동으로 401 error발생하게 해준다.
+        raise InvalidCredentialsException
+    elif password != user['password']:
+        raise InvalidCredentialsException
+    
+    access_token = manager.create_access_token(data={
+        'sub': {
+            'id': user['id'],
+            'name': user['name'],
+            'email': user['email'],
+        }
+    })
+    
+    return {'access_token': access_token}
+
+@app.post("/signup")
+def signup(id:Annotated[str, Form()], password:Annotated[str, Form()],
+           name: Annotated[str, Form()],
+           email: Annotated[str, Form()]):
+    
+    cur.execute(f"""
+                INSERT INTO users(id, name, email, password)
+                VALUES ('{id}','{name}','{email}','{password}')
+                """)
+    conn.commit()
+    
+    return '200'
+
 @app.post('/items')
 async def create_item(image: UploadFile, 
                 title: Annotated[str,Form()], 
                 price: Annotated[int, Form()], 
                 description: Annotated[str, Form()], 
                 place: Annotated[str, Form()],
-                insertAt: Annotated[int, Form()]):
+                insertAt: Annotated[int, Form()],
+                user=Depends(manager)):
     # 이미지 데이터는 블록타입이라서 크게 오기 때문에 데이터를 읽을 시간이 필요함
     image_bytes = await image.read()
     cur.execute(f"""
@@ -49,7 +101,7 @@ async def create_item(image: UploadFile,
     return '200'
 
 @app.get('/items')
-async def get_items():
+async def get_items(user=Depends(manager)):
     #컬럼명을 같이 불러오는 코드
     conn.row_factory = sqlite3.Row
     #다음 행동을 진행하기 위한 cursor 이동
@@ -74,18 +126,6 @@ async def get_image(item_id):
     #deta-space의 경우 python3.9까지 적용중이라고 함(현재 나의 버전 3.12)
     return Response(content=bytes.fromhex(image_bytes), media_type="image/*")
 
-@app.post("/signup")
-def signup(id:Annotated[str, Form()], password:Annotated[str, Form()],
-           name: Annotated[str, Form()],
-           email: Annotated[str, Form()]):
-    
-    cur.execute(f"""
-                INSERT INTO users(id, name, email, password)
-                VALUES ('{id}','{name}','{email}','{password}')
-                """)
-    conn.commit()
-    
-    return '200'
 
 
 

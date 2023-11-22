@@ -2,11 +2,17 @@ const calcTime = (timestamp) => {
   //한국시간 UTC+9가 되기 때문에 세계시간으로 맞춘다
   const curTime = new Date().getTime() - 9 * 60 * 60 * 1000;
   const time = new Date(curTime - timestamp);
+  const year = time.getFullYear();
+  console.log(year);
+  const month = time.getMonth();
+  const day = time.getDate();
   const hour = time.getHours();
   const minute = time.getMinutes();
   const second = time.getSeconds();
 
-  if (hour > 0) return `${hour}시간 전`;
+  if (month > 0) return `${month + 1}달 전`;
+  else if (day > 0) return `${day}일 전`;
+  else if (hour > 0) return `${hour}시간 전`;
   else if (minute > 0) return `${minute}분 전`;
   else if (second > 0) return `${second}초 전`;
   else return "방금 전";
@@ -56,7 +62,16 @@ const renderData = (data) => {
 };
 
 const fetchList = async () => {
-  const response = await fetch("/items");
+  const accessToken = window.localStorage.getItem("token");
+  const response = await fetch("/items", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  if (response.status == 401) {
+    window.location.pathname = "/login.html";
+    return;
+  }
   const data = await response.json();
   renderData(data);
 };
